@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post("/createJob", async (req: Request<{}, {}, CronService.CreateJobBody>, res: Response) => {
     const { targetUrl, payload, cron, secretKey } = req.body;
-    console.log("[route] /createJob called with:", req.body);
+    console.log("[router] /createJob called with:", req.body);
     if (secretKey !== process.env.SECRETKEY) {
       console.log(`[Unathorized] Invalid secret key provided`);
       return res.status(403).json({ error: "403: Invalid secret key" });
@@ -30,9 +30,8 @@ router.post("/createJob", async (req: Request<{}, {}, CronService.CreateJobBody>
     res.json({ jobId: job.id });
 });
 
-router.get(
-  '/job/:jobId',
-  async (req: Request<CronService.JobDetailsParams>, res: Response) => {
+router.get('/job/:jobId', async (req: Request<CronService.JobDetailsParams>, res: Response) => {
+    console.log("[router] /job/:jobId called with:", req.body);
     try {
       const { jobId } = req.params;
 
@@ -52,9 +51,8 @@ router.get(
   }
 );
 
-router.get(
-  '/job/:jobId/attempts',
-  async (req: Request<CronService.JobDetailsParams>, res: Response) => {
+router.get( '/job/:jobId/attempts', async (req: Request<CronService.JobDetailsParams>, res: Response) => {
+    console.log("[router] /job/:jobId/attempts called with:", req.body);
     try {
       const { jobId } = req.params;
 
