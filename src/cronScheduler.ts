@@ -47,6 +47,7 @@ export async function scheduleJob(jobId: string) {
                     await new Promise(res => setTimeout(res, 5000));
                 } else {
                     console.error(`[cron service]all attempts failed`);
+                    await prisma.job.delete({ where: { id: job.id } });
                 }
             }
         }
