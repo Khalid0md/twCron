@@ -10,33 +10,45 @@ export async function scheduleJob(jobId: string) {
     if (!job) return;
     console.log("[cron service] Initiating Job")
     cron.schedule(job.cron, async () => {
-        try {
-            const res = await axios.post(job.targetUrl, JSON.parse(job.payload), {
-                headers: {
-                    "Authorization": job.secretKey,
-                    "Content-Type": "application/json"
-                }
-            });
+        const maxTries = 2;
+        for (let i = 0; i<= maxTries; i++) {
+            try {
+                const res = await axios.post(job.targetUrl, JSON.parse(job.payload), {
+                    headers: {
+                        "Authorization": job.secretKey,
+                        "Content-Type": "application/json"
+                    }
+                });
+    
+                console.log(`[cron service] Webhook responded with status ${res.status}`);
+    
+                await prisma.attempt.create({
+                    data: {
+                        jobId: job.id,
+                        payload: job.payload,
+                        statusCode: res.status,
+                        details: JSON.stringify(res.data)
+                    }
+                });
 
-            console.log(`[cron service] Webhook responded with status ${res.status}`);
+                break;
+            } catch (err: any) {
+                await prisma.attempt.create({
+                    data: {
+                        jobId: job.id,
+                        payload: job.payload,
+                        statusCode: err.response?.status || 500,
+                        details: err.message
+                    }
+                });
 
-            await prisma.attempt.create({
-                data: {
-                    jobId: job.id,
-                    payload: job.payload,
-                    statusCode: res.status,
-                    details: JSON.stringify(res.data)
+                if (i < maxTries) {
+                    console.log(`[cron service] Retrying in 5 seconds`);
+                    await new Promise(res => setTimeout(res, 5000));
+                } else {
+                    console.error(`[cron service]all attempts failed`);
                 }
-            });
-        } catch (err: any) {
-            await prisma.attempt.create({
-                data: {
-                    jobId: job.id,
-                    payload: job.payload,
-                    statusCode: err.response?.status || 500,
-                    details: err.message
-                }
-            });
+            }
         }
     });
 }
